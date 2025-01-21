@@ -6,8 +6,8 @@ import {
 const router = express.Router();
 import auth from "../middlewares/auth.js";
 
-// POST /api/clients -> Crea un nuevo cliente
-router.post("/", auth, createClient);
+// POST /api/clients/register -> Crea un nuevo cliente
+router.post("/register", auth, createClient);
 
 // GET /api/clients/:documento -> Busca cliente por documento
 router.get("/:documento", auth, getClientByDocument);

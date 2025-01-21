@@ -40,7 +40,17 @@ export const getClientByDocument = async (req, res) => {
     if (!client) {
       return res.status(404).json({ message: "Cliente no encontrado" });
     }
-    res.json(client);
+
+    // Si el cliente existe, devolver los datos del cliente
+    res.json({
+      id: client.id,
+      nombre: client.nombre,
+      apellido: client.apellido,
+      documento: client.documento,
+      direccion: client.direccion,
+      telefono: client.telefono,
+      email: client.email,
+    });
   } catch (err) {
     res
       .status(500)

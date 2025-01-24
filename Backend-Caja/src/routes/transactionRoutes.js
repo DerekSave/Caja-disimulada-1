@@ -1,5 +1,9 @@
 import express from "express";
-import { deposit, withdraw } from "../controllers/transactionController.js";
+import {
+  deposit,
+  withdraw,
+  getTransactionsByCashRegisterId,
+} from "../controllers/transactionController.js";
 import auth from "../middlewares/auth.js";
 import { generateReceipt } from "../controllers/receiptController.js";
 
@@ -13,5 +17,8 @@ router.post("/withdraw", auth, withdraw);
 
 // POST /api/transactions/receipt -> Generar recibo
 router.post("/receipt", auth, generateReceipt);
+
+// cashRegisterRoutes.js
+router.get("/:id/transactions", auth, getTransactionsByCashRegisterId);
 
 export default router;

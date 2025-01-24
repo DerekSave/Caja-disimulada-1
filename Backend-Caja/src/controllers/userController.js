@@ -19,6 +19,16 @@ export const register = async (req, res) => {
     res.status(400).json({ message: "Error al registrar", error: err.message });
   }
 };
+export const getAuthenticatedUser = async (req, res) => {
+  try {
+    const { id, username, branch, role } = req.user; // Extraer los datos relevantes del usuario
+    res.status(200).json({ id, username, branch, role });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error al obtener el usuario", error: err.message });
+  }
+};
 
 export const login = async (req, res) => {
   try {

@@ -1,85 +1,43 @@
-import PDFDocument from "pdfkit";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-// Crear __dirname manualmente
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// controllers/receiptController.js
+import Transaction from "../models/Transaction.js";
+import CashRegister from "../models/CashRegister.js";
+import Client from "../models/Client.js"; // si lo necesitas
 
 export const generateReceipt = async (req, res) => {
   try {
-    const { transaction_id, cliente, monto, descripcion } = req.body;
+    const { transaction_id } = req.body;
 
-    if (!transaction_id || !cliente || !monto || !descripcion) {
-      return res.status(400).json({ message: "Datos insuficientes" });
+    // Buscar la transacción
+    const transaction = await Transaction.findByPk(transaction_id);
+    if (!transaction) {
+      return res.status(404).json({ message: "Transacción no encontrada" });
     }
 
-    // Crear el directorio de recibos si no existe
-    const receiptsDir = path.join(__dirname, "../../receipts");
-    if (!fs.existsSync(receiptsDir)) {
-      fs.mkdirSync(receiptsDir, { recursive: true });
-    }
+    // Obtener más datos relevantes, si los necesitas (caja, cliente, etc.)
+    const cashRegister = await CashRegister.findByPk(
+      transaction.cash_register_id
+    );
+    // const client = await Client.findByPk(transaction.client_id); // Opcional
 
-    const filePath = path.join(receiptsDir, `receipt-${transaction_id}.pdf`);
+    // Estructura el contenido del recibo
+    const receiptData = {
+      transaction_id: transaction.id,
+      type: transaction.type,
+      monto: transaction.monto,
+      descripcion: transaction.descripcion,
+      // Datos de la caja
+      caja_id: cashRegister.id,
+      estado_caja: cashRegister.estado,
+      branch: cashRegister.branch,
+      // ...
+      created_at: transaction.created_at,
+    };
 
-    const doc = new PDFDocument({ size: "A4", margin: 50 });
-
-    // Crear encabezado profesional
-    doc
-      .fontSize(20)
-      .text("Recibo Oficial de Transacción", {
-        align: "center",
-        underline: true,
-      })
-      .moveDown(1);
-
-    // Añadir un divisor
-    doc.moveTo(50, 100).lineTo(550, 100).stroke();
-
-    // Información del recibo
-    doc.fontSize(12).moveDown();
-    doc
-      .text(`ID Transacción: ${transaction_id}`, { continued: true })
-      .text(`Fecha: ${new Date().toLocaleString()}`, { align: "right" });
-    doc.moveDown();
-    doc
-      .text(`Cliente: ${cliente}`, { continued: true })
-      .text(`Monto: RD$ ${monto}`, { align: "right" });
-    doc.moveDown();
-    doc.text(`Descripción: ${descripcion}`);
-    doc.moveDown(1);
-
-    // Añadir una nota o pie de página
-    doc
-      .moveDown(2)
-      .fontSize(10)
-      .text(
-        "Este recibo sirve como comprobante oficial de la transacción realizada.",
-        { align: "center", italic: true }
-      );
-
-    // Estilizar el pie de página
-    doc.moveTo(50, 750).lineTo(550, 750).stroke();
-    doc
-      .fontSize(8)
-      .text(
-        "Caja Aseguradora - Todos los derechos reservados © 2025",
-        50,
-        760,
-        { align: "center" }
-      );
-
-    // Guardar el archivo PDF
-    doc.pipe(fs.createWriteStream(filePath));
-    doc.end();
-
-    res
-      .status(200)
-      .json({ message: "Recibo generado profesionalmente", filePath });
-  } catch (error) {
+    // Devuelve los datos necesarios para que el frontend genere o muestre el recibo
+    res.json({ receiptData });
+  } catch (err) {
     res
       .status(500)
-      .json({ message: "Error al generar recibo", error: error.message });
+      .json({ message: "Error al generar recibo", error: err.message });
   }
 };

@@ -1,14 +1,20 @@
 import express from "express";
-import { register, login } from "../controllers/userController.js";
+import {
+  register,
+  login,
+  getAuthenticatedUser,
+} from "../controllers/userController.js";
+import { authenticateUser } from "../middlewares/authenticateUser.js";
 
 const router = express.Router();
 
-// POST /api/users/register
+// Registro de usuario
 router.post("/register", register);
 
-// POST /api/users/login
+// Inicio de sesión
 router.post("/login", login);
 
-export default router;
+// Obtener usuario autenticado
+router.get("/me", authenticateUser, getAuthenticatedUser);
 
-// {  "username": "admin",  "password": "securepassword"}
+export default router;

@@ -1,21 +1,49 @@
 import CashRegister from "../models/CashRegister.js";
-
+import Transaction from "../models/Transaction.js";
 // Crear una nueva caja
 export const createCashRegister = async (req, res) => {
   try {
     const { user_id, branch, monto_inicial } = req.body;
 
+    // Verificar si ya existe una caja abierta en la sucursal
+    const existingOpenRegister = await CashRegister.findOne({
+      where: { branch, estado: "abierta" },
+    });
+
+    if (existingOpenRegister) {
+      return res.status(400).json({
+        message: "Ya existe una caja abierta para esta sucursal.",
+      });
+    }
+
+    // Crear la nueva caja
     const newCashRegister = await CashRegister.create({
       user_id,
       branch,
       monto_inicial,
+      estado: "abierta", // Marca la caja como abierta
+      fecha_apertura: new Date(), // Registra la fecha de apertura
     });
 
-    res.status(201).json(newCashRegister);
+    res.status(201).json({
+      message: "Caja creada con éxito",
+      cashRegister: newCashRegister,
+    });
   } catch (err) {
     res
       .status(400)
-      .json({ message: "Error al crear caja", error: err.message });
+      .json({ message: "Error al crear la caja", error: err.message });
+  }
+};
+
+export const getAllCashRegisters = async (req, res) => {
+  try {
+    const cashRegisters = await CashRegister.findAll();
+    res.json(cashRegisters);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error al obtener las cajas", error: err.message });
   }
 };
 
@@ -37,48 +65,51 @@ export const getCashRegister = async (req, res) => {
   }
 };
 
-// Cerrar una caja
 export const closeCashRegister = async (req, res) => {
   try {
-    const { id } = req.params; // Obtén el ID de la caja desde los parámetros de la ruta
+    const { id } = req.params;
 
-    // Busca la caja por su ID
+    // Validar el ID
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "ID inválido para la caja" });
+    }
+
+    // Buscar la caja
     const cashRegister = await CashRegister.findByPk(id);
 
-    // Verifica si la caja existe
     if (!cashRegister) {
       return res.status(404).json({ message: "Caja no encontrada" });
     }
 
-    // Verifica si la caja ya está cerrada
     if (cashRegister.estado === "cerrada") {
       return res.status(400).json({ message: "La caja ya está cerrada" });
     }
 
-    // Obtén las transacciones asociadas a esta caja
+    // Buscar transacciones asociadas
     const transactions = await Transaction.findAll({
       where: { cash_register_id: id },
     });
 
-    // Calcula el total de entradas y salidas
-    const totalEntradas = transactions
+    // Calcular entradas y salidas
+    const totalEntradas = (transactions || [])
       .filter((t) => t.type === "entrada")
-      .reduce((sum, t) => sum + parseFloat(t.monto), 0);
+      .reduce((sum, t) => sum + parseFloat(t.monto || 0), 0);
 
-    const totalSalidas = transactions
+    const totalSalidas = (transactions || [])
       .filter((t) => t.type === "salida")
-      .reduce((sum, t) => sum + parseFloat(t.monto), 0);
+      .reduce((sum, t) => sum + parseFloat(t.monto || 0), 0);
 
-    // Calcula el monto final
+    // Calcular monto final
     const montoFinal =
-      parseFloat(cashRegister.monto_inicial) + totalEntradas - totalSalidas;
+      parseFloat(cashRegister.monto_inicial || 0) +
+      totalEntradas -
+      totalSalidas;
 
-    // Actualiza los valores de la caja
+    // Actualizar la caja
     cashRegister.monto_final = montoFinal;
     cashRegister.estado = "cerrada";
     cashRegister.fecha_cierre = new Date();
 
-    // Guarda los cambios
     await cashRegister.save();
 
     res.status(200).json({
@@ -93,12 +124,31 @@ export const closeCashRegister = async (req, res) => {
       },
     });
   } catch (err) {
+    console.error("Error al cerrar caja:", err.message); // Depuración
     res
       .status(500)
       .json({ message: "Error al cerrar caja", error: err.message });
   }
 };
 
+// Obtener la caja activa (suponiendo que 'abierta' sea el estado)
+export const getActiveCashRegister = async (req, res) => {
+  try {
+    const activeCashRegister = await CashRegister.findOne({
+      where: { estado: "abierta" }, // Ajusta según tu lógica
+    });
+
+    if (!activeCashRegister) {
+      return res.status(404).json({ message: "No hay caja activa" });
+    }
+
+    res.json(activeCashRegister);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error al obtener caja activa", error: err.message });
+  }
+};
 export const getCuadre = async (req, res) => {
   try {
     const { id } = req.params;

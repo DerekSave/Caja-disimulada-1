@@ -1,5 +1,6 @@
 // controllers/clientController.js
 import Client from "../models/Client.js";
+import jwt from "jsonwebtoken";
 
 // Crear cliente
 export const createClient = async (req, res) => {
@@ -41,15 +42,24 @@ export const getClientByDocument = async (req, res) => {
       return res.status(404).json({ message: "Cliente no encontrado" });
     }
 
+    const token = jwt.sign(
+      { id: client.id, documento: client.documento },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+
     // Si el cliente existe, devolver los datos del cliente
     res.json({
-      id: client.id,
-      nombre: client.nombre,
-      apellido: client.apellido,
-      documento: client.documento,
-      direccion: client.direccion,
-      telefono: client.telefono,
-      email: client.email,
+      token,
+      client: {
+        id: client.id,
+        nombre: client.nombre,
+        apellido: client.apellido,
+        documento: client.documento,
+        direccion: client.direccion,
+        telefono: client.telefono,
+        email: client.email,
+      },
     });
   } catch (err) {
     res

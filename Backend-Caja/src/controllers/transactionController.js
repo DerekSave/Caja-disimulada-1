@@ -1,6 +1,29 @@
 import Transaction from "../models/Transaction.js";
 import CashRegister from "../models/CashRegister.js";
 
+export const getTransactionsByCashRegisterId = async (req, res) => {
+  try {
+    const { id } = req.params; // ID de la caja
+    // Verificar si la caja existe (opcional, pero recomendado)
+    const cashRegister = await CashRegister.findByPk(id);
+    if (!cashRegister) {
+      return res.status(404).json({ message: "Caja no encontrada" });
+    }
+
+    // Buscar todas las transacciones con ese cash_register_id
+    const transactions = await Transaction.findAll({
+      where: { cash_register_id: id },
+      order: [["created_at", "DESC"]], // por ejemplo, más recientes primero
+    });
+
+    return res.json(transactions);
+  } catch (err) {
+    return res.status(500).json({
+      message: "Error al obtener transacciones",
+      error: err.message,
+    });
+  }
+};
 export const deposit = async (req, res) => {
   try {
     const { cash_register_id, monto, descripcion, user_id, branch } = req.body;
@@ -73,7 +96,7 @@ export const deposit = async (req, res) => {
 
 export const withdraw = async (req, res) => {
   try {
-    const { cash_register_id, monto, descripcion } = req.body;
+    const { cash_register_id, monto, descripcion, client_id } = req.body; // Incluir client_id si aplica
 
     // 1. Verificar si la caja existe
     const cashRegister = await CashRegister.findByPk(cash_register_id);
@@ -102,6 +125,7 @@ export const withdraw = async (req, res) => {
       type: "salida",
       monto,
       descripcion,
+      client_id: client_id || null, // Registra el client_id si está presente
     });
 
     // 5. Actualizar la caja

@@ -7,6 +7,7 @@ import transactionRoutes from "./routes/transactionRoutes.js";
 import cashRegisterRoutes from "./routes/cashRegisterRoutes.js";
 import clientRoutes from "./routes/clientRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import cors from "cors";
 import cron from "node-cron";
 import { closeCashRegister } from "./controllers/cashRegisterController.js";
 
@@ -16,6 +17,7 @@ dotenv.config();
 // Instancia de express
 const app = express();
 app.use(helmet());
+app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
 
 // Usar las rutas
